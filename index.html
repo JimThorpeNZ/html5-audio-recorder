@@ -1,0 +1,32 @@
+<!DOCTYPE>
+<html>
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<title>sound recorder</title>
+	<link href="//maxcdn.bootstrapcdn.com/font-awesome/4.1.0/css/font-awesome.min.css" rel="stylesheet">
+	<link href="css/style.css" rel="stylesheet">
+</head>
+<body>
+
+<div class="btn-group" id="videoRecorderControls">
+  <a class="btn btn-default" href="#" id="recordButton"><i class="fa fa-circle"></i></a>
+  <a class="btn btn-default playerControl disabled" href="#" id="playButton"><i class="fa fa-play"></i></a>
+  <a class="btn btn-default playerControl disabled" href="#" id="pauseButton"><i class="fa fa-pause"></i></a>
+  <a class="btn btn-default disabled" href="#" id="stopButton"><i class="fa fa-stop"></i></a>
+  <a class="btn btn-default playerControl disabled" href="#" id="uploadButton"><i class="fa fa-upload"></i></a>
+</div>
+
+<!-- <button><i class="fa fa-circle fa-5x"></i></button> -->
+
+<h2>Recordings</h2>
+<ul id="recordingslist"></ul>
+
+<h2>Log</h2>
+<pre id="log"></pre>
+
+<!-- <script src="js/jquery-1.11.0.min.js"></script> -->
+<script src="http://yui.yahooapis.com/3.17.2/build/yui/yui-min.js"></script>
+<script src="js/getUserMedia.js"></script>
+<script src="js/recorder.js"></script>
+</body>
+</html>

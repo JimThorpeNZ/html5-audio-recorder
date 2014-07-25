@@ -1,0 +1,63 @@
+
+#videoRecorderControls {
+	padding: 100px 0 0 100px;
+}
+.btn-group {
+	position: relative;
+	display: inline-block;
+	vertical-align: middle;
+}
+.btn-group > .btn:first-child:not(:last-child) {
+	border-bottom-right-radius: 0;
+	border-top-right-radius: 0;
+}
+.btn-group > .btn:not(:first-child):not(:last-child) {
+	border-radius: 0;
+}
+.btn-group > .btn:first-child {
+	margin-left: 0;
+}
+.btn-group > .btn {
+	position: relative;
+	float: left;
+}
+.btn-default {
+	color: #333333;
+	background-color: #ffffff;
+	border: 1px solid #cccccc;
+}
+.btn {
+	display: inline-block;
+	margin-bottom: 0;
+	font-weight: normal;
+	text-align: center;
+	vertical-align: middle;
+	cursor: pointer;
+	background-image: none;
+	white-space: nowrap;
+	padding: 6px 12px;
+	font-size: 14px;
+	line-height: 1.4;
+	border-radius: 4px;
+	-webkit-user-select: none;
+	-moz-user-select: none;
+	-ms-user-select: none;
+	user-select: none;
+}
+.btn-group > .btn:last-child:not(:first-child) {
+	border-bottom-left-radius: 0;
+	border-top-left-radius: 0;
+}
+.btn-group .btn + .btn {
+	margin-left: -1px;
+}
+.fa:hover {
+	color: #999;
+}
+.recording .fa.fa-circle {
+	color: #f00;
+}
+.btn.disabled {
+ 	cursor: default;
+	color: #999;
+}
