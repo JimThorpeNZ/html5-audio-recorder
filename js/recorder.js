@@ -7,9 +7,7 @@
     var config = cfg || {};
     var bufferLen = config.bufferLen || 4096;
     this.context = source.context;
-    this.node = (this.context.createScriptProcessor ||
-                 this.context.createJavaScriptNode).call(this.context,
-                                                         bufferLen, 2, 2);
+    this.node = (this.context.createScriptProcessor || this.context.createJavaScriptNode).call(this.context, bufferLen, 2, 2);
     var worker = new Worker(config.workerPath || WORKER_PATH);
     worker.postMessage({
       command: 'init',
@@ -18,7 +16,7 @@
       }
     });
     var recording = false,
-      currCallback;
+        currCallback;
 
     this.node.onaudioprocess = function(e){
       if (!recording) return;
@@ -87,7 +85,7 @@
 				audioRecording.parentNode.removeChild(audioRecording);
 			}
 			document.getElementsByTagName('body')[0].appendChild(au);
-			__log('audioRecording appended');
+			__log('audioRecording appended', ' more data');
 			// this.postMessage({ command: 'audioRecording' });
 			// recordingslist.innerHTML = '';
 			// recordingslist.appendChild(li);

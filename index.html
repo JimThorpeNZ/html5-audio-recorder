@@ -16,15 +16,47 @@
   <a class="btn btn-default playerControl disabled" href="#" id="uploadButton"><i class="fa fa-upload"></i></a>
 </div>
 
-<!-- <button><i class="fa fa-circle fa-5x"></i></button> -->
-
 <h2>Recordings</h2>
 <ul id="recordingslist"></ul>
 
 <h2>Log</h2>
 <pre id="log"></pre>
 
-<!-- <script src="js/jquery-1.11.0.min.js"></script> -->
+<script>
+var audio_context, recorder;
+
+function __log(e, data) {
+    document.getElementById('log').innerHTML += "\n" + e + " " + (data || '');
+    console.log(e + " " + (data || ''));
+}
+
+function startUserMedia(stream) {
+    var input = audio_context.createMediaStreamSource(stream);
+    input.connect(audio_context.destination);
+    recorder = new Recorder(input);
+    __log('Recorder initialised.');
+    playback = new Playback();
+    __log('Playback initialised.');
+}
+
+window.onload = function () {
+    try { // webkit shim
+        window.AudioContext = window.AudioContext || window.webkitAudioContext;
+        navigator.getUserMedia = ( navigator.getUserMedia ||
+                                    navigator.webkitGetUserMedia ||
+                                    navigator.mozGetUserMedia ||
+                                    navigator.msGetUserMedia);
+        window.URL = window.URL || window.webkitURL;
+        
+        audio_context = new AudioContext;
+    } catch (e) {
+        alert('No web audio support in this browser!');
+    }
+    navigator.getUserMedia({audio: true}, startUserMedia, function(e) {
+        __log('No live audio input: ' + e);
+    });
+};
+</script>
 <script src="http://yui.yahooapis.com/3.17.2/build/yui/yui-min.js"></script>
 <script src="js/getUserMedia.js"></script>
 <script src="js/recorder.js"></script>
