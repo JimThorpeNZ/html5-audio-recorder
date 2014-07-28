@@ -2,11 +2,13 @@
 <html>
 <head>
 	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-	<title>sound recorder</title>
+	<title>audio recorder</title>
 	<link href="//maxcdn.bootstrapcdn.com/font-awesome/4.1.0/css/font-awesome.min.css" rel="stylesheet">
 	<link href="css/style.css" rel="stylesheet">
 </head>
 <body>
+
+<div class="videoRecorderControls"></div>
 
 <div class="btn-group" id="videoRecorderControls">
   <a class="btn btn-default" href="#" id="recordButton"><i class="fa fa-circle"></i></a>
@@ -23,7 +25,7 @@
 <pre id="log"></pre>
 
 <script>
-var audio_context, recorder;
+var audio_context, recorder, playback;
 
 function __log(e, data) {
     document.getElementById('log').innerHTML += "\n" + e + " " + (data || '');
@@ -33,10 +35,15 @@ function __log(e, data) {
 function startUserMedia(stream) {
     var input = audio_context.createMediaStreamSource(stream);
     input.connect(audio_context.destination);
-    recorder = new Recorder(input);
-    __log('Recorder initialised.');
-    playback = new Playback();
-    __log('Playback initialised.');
+
+    playbackControls = new PlaybackControls(input);
+    __log('PlaybackControls initialised.');
+/*
+	if ( document.getElementsByClassName('videoRecorderControls').every(function(){}, str)) {
+	    console.log("The string '" + str + "' contains only letters!");
+	}*/
+
+	// document.getElementsByClassName('videoRecorderControls').forEach();
 }
 
 window.onload = function () {
@@ -47,7 +54,6 @@ window.onload = function () {
                                     navigator.mozGetUserMedia ||
                                     navigator.msGetUserMedia);
         window.URL = window.URL || window.webkitURL;
-        
         audio_context = new AudioContext;
     } catch (e) {
         alert('No web audio support in this browser!');
@@ -58,7 +64,7 @@ window.onload = function () {
 };
 </script>
 <script src="http://yui.yahooapis.com/3.17.2/build/yui/yui-min.js"></script>
-<script src="js/getUserMedia.js"></script>
+<script src="js/audiorecorder.js"></script>
 <script src="js/recorder.js"></script>
 </body>
 </html>
