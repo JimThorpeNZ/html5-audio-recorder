@@ -9,6 +9,7 @@
 <body>
 
 
+<!-- 
 <div class="btn-group" id="videoRecorderControls">
   <a class="btn btn-default" href="#" id="recordButton"><i class="fa fa-circle"></i></a>
   <a class="btn btn-default playerControl disabled" href="#" id="playButton"><i class="fa fa-play"></i></a>
@@ -16,12 +17,13 @@
   <a class="btn btn-default disabled" href="#" id="stopButton"><i class="fa fa-stop"></i></a>
   <a class="btn btn-default playerControl disabled" href="#" id="uploadButton"><i class="fa fa-upload"></i></a>
 </div>
+ -->
 
 <div class="videoRecorderControls"></div>
-
+<!-- 
 <h2>Recordings</h2>
 <ul id="recordingslist"></ul>
-
+ -->
 <h2>Log</h2>
 <pre id="log"></pre>
 
@@ -37,8 +39,13 @@ function startUserMedia(stream) {
     var input = audio_context.createMediaStreamSource(stream);
     input.connect(audio_context.destination);
 
-    playbackControls = new PlaybackControls(input);
-    __log('PlaybackControls initialised.');
+    YUI().use("audio-recorder", function (Y) {
+	    var AudioRecorder = new Y.AudioRecorder({input:input});
+	    AudioRecorder.render();
+	});
+
+    // playbackControls = new PlaybackControls(input);
+    // __log('PlaybackControls initialised.');
 /*
 	if ( document.getElementsByClassName('videoRecorderControls').every(function(){}, str)) {
 	    console.log("The string '" + str + "' contains only letters!");

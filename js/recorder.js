@@ -4,8 +4,9 @@
   var encoderWorker = new Worker('js/mp3Worker.js');
 
   var Recorder = function(source, cfg){
-    var config = cfg || {};
-    var bufferLen = config.bufferLen || 4096;
+    var config = cfg || {},
+    	bufferLen = config.bufferLen || 4096,
+    	audioTag = config.audioTag;
     this.context = source.context;
     this.node = (this.context.createScriptProcessor || this.context.createJavaScriptNode).call(this.context, bufferLen, 2, 2);
     var worker = new Worker(config.workerPath || WORKER_PATH);
@@ -72,11 +73,11 @@
 		var fileReader = new FileReader();
 
 		fileReader.onload = function(){
-			var buffer = new Uint8Array(this.result),
+			var buffer = new Uint8Array(this.result);
 				// li = document.createElement('li'),
-				au = document.createElement('audio');
+				// au = document.createElement('audio');
 				// recordingslist = document.getElementById('recordingslist');
-			  
+			  /*
 			au.controls = true;
 			au.src = 'data:audio/wav;base64,' + encode64(buffer);
 			au.id = "audioRecording";
@@ -85,6 +86,8 @@
 				audioRecording.parentNode.removeChild(audioRecording);
 			}
 			document.getElementsByTagName('body')[0].appendChild(au);
+			*/
+			audioTag.src = 'data:audio/wav;base64,' + encode64(buffer);
 			__log('audioRecording appended', ' more data');
 			// this.postMessage({ command: 'audioRecording' });
 			// recordingslist.innerHTML = '';
