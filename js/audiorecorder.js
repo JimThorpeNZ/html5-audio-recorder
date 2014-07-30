@@ -1,5 +1,4 @@
 
-/* global YUI */
 YUI.add("audio-recorder", function (Y) {
     "use strict";  
  
@@ -7,69 +6,68 @@ YUI.add("audio-recorder", function (Y) {
 	    initializer: function () {
 			// publish any events
 			// do any instantiation that doesn't require DOM
+			this._isRecording = false;
+			this._worker = new Worker( this.get("WORKER_PATH") );
+			// this._fileReader = new FileReader();
+			this._uniqueAudioID = Y.guid();
+/*
+
+			this._fileReader.onload = function(e){
+				// console.log(_audioTag);
+				// console.log(this); // FileReader
+				// console.log(e);
+				// console.log(self);
+				var buffer = new Uint8Array(this.result);
+				console.log(this);
+				console.log(Y.AudioRecorder.prototype._dataBackFromWorker);
+				Y.AudioRecorder.prototype._dataBackFromWorker(buffer, _audioTag, Y.AudioRecorder.prototype);
+		    };
+
+
+	        this._worker.addEventListener("message", function (event) {
+	            startFileReader(event.data);
+	        }, false);
+
+	        var startFileReader = function(blob) {
+	        	self._fileReader.readAsArrayBuffer(blob);
+	        }*/
+
+// this._self = this;
+/*			this._worker.onmessage = function(e){
+				var blob = e.data;
+					// self = self,
+					// fileReader = new FileReader();
+					// fileReader.audioRecorder = this;
+					console.log(this);
+			  
+			    this._fileReader.readAsArrayBuffer(blob);
+		    };*/
+
 	    },
 	    renderUI: function () {
 			// create all DOM nodes
-			var recordButton = Y.Node.create('<a class="btn btn-default" href="#" id="recordButton"><i class="fa fa-circle"></i></a>'),
-				playButton = Y.Node.create('<a class="btn btn-default playerControl disabled" href="#" id="playButton"><i class="fa fa-play"></i></a>'),
-				pauseButton = Y.Node.create('<a class="btn btn-default playerControl disabled" href="#" id="pauseButton"><i class="fa fa-pause"></i></a>'),
-				stopButton = Y.Node.create('<a class="btn btn-default disabled" href="#" id="stopButton"><i class="fa fa-stop"></i></a>'),
-				uploadButton = Y.Node.create('<a class="btn btn-default playerControl disabled" href="#" id="uploadButton"><i class="fa fa-upload"></i></a>'),
-				audioTag = Y.Node.create('<audio/>').set('controls', true);
-			      
-			// use this.getClassName(arg1s...) to create unque classes
-			// title.addClass(this.getClassName("title"));
-			// button.addClass(this.getClassName("button"));
-
 			// store shortcuts for DOM you'll need to reference
-			this._recordButton = recordButton;
-			this._playButton = playButton;
-			this._pauseButton = pauseButton;
-			this._stopButton = stopButton;
-			this._uploadButton = uploadButton;
-			this._allButtons = [recordButton, playButton, pauseButton, stopButton, uploadButton];
-			this._audioTag = audioTag;
+			var buttonMarkUp = ['<a class="btn btn-default" href="#"><i class="fa ', '"></i></a>'];
+			this._recordButton = Y.Node.create(buttonMarkUp[0] + 'fa-circle' + buttonMarkUp[1]);
+			this._playButton = Y.Node.create(buttonMarkUp[0] + 'fa-play' + buttonMarkUp[1]);
+			this._pauseButton = Y.Node.create(buttonMarkUp[0] + 'fa-pause' + buttonMarkUp[1]);
+			this._stopButton = Y.Node.create(buttonMarkUp[0] + 'fa-stop' + buttonMarkUp[1]);
+			this._uploadButton = Y.Node.create(buttonMarkUp[0] + 'fa-upload' + buttonMarkUp[1]);
+			this._allButtons = [this._recordButton, this._playButton, this._pauseButton, this._stopButton, this._uploadButton];
+			this._audioTag = Y.Node.create('<audio/>').setAttrs({'controls': true, 'id': this._uniqueAudioID});
 
 			// add nodes to the page all at once
-			this.get("container").addClass('btn-group').append(Y.all(this._allButtons)).append(this._audioTag);
-			
+			this.get("container").addClass('btn-group').append(Y.all(this._allButtons)).insert(this._audioTag, 'after');
+
 	    },
 	    bindUI: function () {
-
-		    recorder = new Recorder( this.get("input"), { audioTag: this._audioTag } );
-		    __log('Recorder initialised.');
-		    playback = new Playback();
-		    __log('Playback initialised.');
-		    // record = new Record();
-		    // __log('Record initialised.');
-
-		    // this._recordButton.on("click", this._startRecording);
-		    this._recordButton.on("click", Y.bind(this._startRecording, this));
-
-		    // this._enablePlayerControls;
-/*
-			// store references to event handlers you set on other
-			// objects for clean up later
-			this._buttonClickHandler = this._buttonNode.on("click", function (event) {
-			Y.log("you clicked the button!");
-			event.halt();
-			}, this);
-			// assign listeners to events on the instance directly
-			// they're cleaned up automatically
-			this.after("titleChange", this._afterTitleChange, this);
-*/
+		    this._setUIStateInit();
 	    },
-	    // _afterTitleChange: function (event) {
-	    //     this._titleNode.setContent(event.newVal);
-	    // },
 	    syncUI: function () {
 			// now that the DOM is created, syncUI sets it up
 			// given the current state of our ATTRS
-			// this._afterTitleChange({
-			// 	newVal: this.get("title")
-			// });
 	    },
-	    destructor: function () {
+/*	    destructor: function () {
 	        if (this.get("rendered")) {
 		        // bindUI was called, clean up events
 		        this._buttonClickHandler.detach();
@@ -77,93 +75,199 @@ YUI.add("audio-recorder", function (Y) {
 		        // renderUI was called, clean up shortcuts
 		        this._titleNode = this._buttonNode = null;
 	        }
+	    },*/
+	    _setUIStateInit : function () {
+	    	// this._allButtons = [this._recordButton, this._playButton, this._pauseButton, this._stopButton, this._uploadButton];
+	    	Y.all([this._playButton, this._pauseButton, this._stopButton, this._uploadButton]).addClass('disabled');
+		    this._recordButton.on("click", Y.bind(this._startRecording, this));
 	    },
-	    _enablePlayerControls : function () {
+	    _setUIStateRecording : function () {
+			Y.all(this._allButtons).addClass('disabled').detach('click');
+			this._recordButton.addClass('recording');
+			Y.all([this._stopButton, this._recordButton]).removeClass('disabled').detach('click').on("click", Y.bind(this._stopRecording, this));
+	    },
+	    _setUIStatePlayback : function () {
 			Y.all(this._allButtons).removeClass('disabled');
 			// var audioRecording = document.getElementById('audioRecording');
-			Y.one(this._playButton).on('click', function(e) {
+			this._playButton.on('click', function(e) {
 			    e.preventDefault();
-			    playback.startPlayBack(audioRecording);
+			    this._startPlayBack();
 			});
-			Y.one(this._pauseButton).on('click', function(e) {
+			this._pauseButton.on('click', function(e) {
 			    e.preventDefault();
-			    playback.pausePlayBack(audioRecording);
+			    this._pausePlayBack();
 			});
-			Y.one(this._stopButton).detach('click');
-			Y.one(this._stopButton).on('click', function(e) {
+			this._stopButton.detach('click').on('click', function(e) {
 			    e.preventDefault();
-			    playback.stopPlayBack(audioRecording);
+			    this._stopPlayBack();
 			});
-			Y.one(this._uploadButton).on('click', function(e) {
+			this._uploadButton.on('click', function(e) {
 			    e.preventDefault();
 			    alert('needs to convert and upload mp3');
 			});
 		},
-		_disablePlayerControls : function () {
+/*		_disablePlayerControls : function () {
 			Y.all(this._allButtons).addClass('disabled');
 			Y.all(this._allButtons).detach('click');
-		},
-		_enableRecordingButtons : function () {
-			this._recordButton.addClass('recording');
-			this._stopButton.removeClass('disabled');
-			this._stopButton.detach('click');
-			this._stopButton.on("click", Y.bind(this._stopRecording, this));
-			// Y.one(this._stopButton).on('click', function(e) {
-			//     e.preventDefault();
-		 //    	this._stopRecording();
-			// });
-		},
+		},*/
 		_disableRecordingButtons : function () {
 			Y.one(this._recordButton).removeClass('recording');
 		},
 		_startRecording : function () {
-		    if (recorder) {
-		    	this._disablePlayerControls();
-		    	this._enableRecordingButtons();
-		    	recorder.record();
-		    	__log('Recording...');
-		    }
+			this._recorder();
+	    	this._setUIStateRecording();
+	    	this._recorder("record");
+	    	__log('Recording...');
 		},
 		_stopRecording : function () {
-		    if (recorder) {
-		    	recorder.stop();
+			// var self = this;
+		 //    if (recorder) {
+		    	this._recorder("stop");
 			    __log('Stopped recording.');
-		    	this._disableRecordingButtons();
-		    	recorder.exportWAV(function(blob) {});
-			    recorder.clear();
-			    this._listenForPlayer();
-		    }
+		    	// this._setUIStatePlayback();
+		    	this._recorder("exportWAV");
+			    this._recorder("clear");
+			    // this._listenForPlayer();
+		    // }
 		},
-		_listenForPlayer : function () {
-			if ( ! this._audioTag.src ) {
-				setTimeout(this.listenForPlayer, 100);
+/*		_listenForPlayer : function (_audioTag) {
+			var audioTag = _audioTag || this._audioTag;
+			console.log("audioTag");
+			console.log(this._audioTag);
+			if ( ! this._audioTag.get('src') ) {
+				setTimeout(this._listenForPlayer, 100, this._audioTag);
 				__log('not found player src');
 			} else {
 				__log('found player src');
-				this._enablePlayerControls();
+				this._setUIStatePlayback();
 			}
+		},*/
+		_startPlayBack : function () {
+		    this._audioTag.play();
+		},
+		_pausePlayBack : function () {
+		    this._audioTag.pause();
+		},
+		_stopPlayBack : function () {
+		    this._audioTag.pause();
+		    this._audioTag.currentTime = 0;
+		},
+
+
+
+		_recorder : function( recorderFunction ){
+			// var encoderWorker = new Worker( this.get("encoderWorker_path") );
+			switch ( recorderFunction ) {
+				case "record":
+					this._isRecording = true;
+					break;
+				case "stop":
+					this._isRecording = false;
+					break;
+				case "clear":
+					this._worker.postMessage({ command: 'clear' });
+					break;
+				case "getBuffer":
+					this._worker.postMessage({ command: 'getBuffer' });
+					break;
+				case "exportWAV":
+					this._worker.postMessage({
+						command: 'exportWAV',
+						uniqueAudioID: this._uniqueAudioID,
+						type: 'audio/wav'
+					});
+					break;
+				case "init":
+				default:
+					var bufferLen = this.get("bufferLen") || 4096,
+						_audioTag = this._audioTag,
+						source = this.get("input"),
+						context = source.context,
+						node = (context.createScriptProcessor || context.createJavaScriptNode).call(context, bufferLen, 2, 2);
+					this._worker.postMessage({
+						command: 'init',
+						config: {
+							sampleRate: context.sampleRate
+						}
+					});
+					node.onaudioprocess = function(e){
+						if (!this._isRecording) return;
+						this._worker.postMessage({
+							command: 'record',
+							buffer: [
+								e.inputBuffer.getChannelData(0),
+								//e.inputBuffer.getChannelData(1)
+							]
+						});
+					};
+
+
+
+    this._worker.onmessage = function(e, uniqueAudioID){
+		var blob = e.data,
+			uniqueAudioID = uniqueAudioID;
+		console.log(blob);
+		console.log(uniqueAudioID);
+
+		var fileReader = new FileReader(uniqueAudioID);
+
+		fileReader.onload = function(uniqueAudioID){
+			var buffer = new Uint8Array(this.result);
+
+			document.getElementById(uniqueAudioID).set( 'src', 'data:audio/wav;base64,' + encode64(buffer) );
+			__log('audioRecording appended', ' more data');
+			
+	    };
+	  
+	    fileReader.readAsArrayBuffer(blob, uniqueAudioID);
+
+    }
+
+
+
+
+
+				    break;
+			}
+		},
+		_dataBackFromWorker : function(buffer, _audioTag, thisInstance) {
+			console.log(_audioTag);
+			_audioTag.set( 'src', 'data:audio/wav;base64,' + thisInstance.encode64(buffer) );
+			__log('audioRecording appended', ' more data');
+			thisInstance._setUIStatePlayback();
+		},
+		encode64 : function(buffer) {
+			var binary = '',
+				bytes = new Uint8Array( buffer ),
+				len = bytes.byteLength;
+
+			for (var i = 0; i < len; i++) {
+				binary += String.fromCharCode( bytes[ i ] );
+			}
+			return window.btoa( binary );
 		}
+
 	}, {
 	    // Public attributes that broadcast change events
 	    ATTRS: {
 			title: {
 				value: "No one gave me a title :("
 			},
-			container : {
+			container: {
 		        value: null,
 		        setter: function(val) {
 		            return Y.one(val) || Y.one(".videoRecorderControls");
 		        }
 		    },
-			input : {
+			input: {
 		        value: null
-		    }
-	    },
-	    // Attributes whose default values can be scraped from HTML
-	    HTML_PARSER: {
-	        title: function (srcNode) {
-	            return srcNode.getAttribute("title");
-	        }
+		    },
+		    WORKER_PATH: {
+		    	value: 'js/recorderWorker.js'
+			},
+		    encoderWorker_path: {
+		    	value: 'js/mp3Worker.js'
+			}
 	    }
 	});
 }, "3.3.0", {
@@ -179,123 +283,3 @@ YUI.add("audio-recorder", function (Y) {
 
 
 
-
-
-
-/*
-var PlaybackControls = function(input) {
-
-    recorder = new Recorder(input);
-    __log('Recorder initialised.');
-    playback = new Playback();
-    __log('Playback initialised.');
-    record = new Record();
-    __log('Record initialised.');
-
-	this.enablePlayerControls = function () {
-		Y.all('.playerControl').removeClass('disabled');
-		var audioRecording = document.getElementById('audioRecording');
-		Y.one('#playButton').on('click', function(e) {
-		    e.preventDefault();
-		    playback.startPlayBack(audioRecording);
-		});
-		Y.one('#pauseButton').on('click', function(e) {
-		    e.preventDefault();
-		    playback.pausePlayBack(audioRecording);
-		});
-		Y.one('#stopButton').detach('click');
-		Y.one('#stopButton').on('click', function(e) {
-		    e.preventDefault();
-		    playback.stopPlayBack(audioRecording);
-		});
-		Y.one('#uploadButton').on('click', function(e) {
-		    e.preventDefault();
-		    alert('needs to convert and upload mp3');
-		});
-	}
-
-	this.disablePlayerControls = function () {
-		Y.all('.playerControl').addClass('disabled');
-		Y.all('.playerControl').detach('click');
-	}
-
-	this.enableRecordingButtons = function () {
-		Y.one('#recordButton').addClass('recording');
-		Y.one('#stopButton').removeClass('disabled');
-		Y.one('#stopButton').detach('click');
-		Y.one('#stopButton').on('click', function(e) {
-		    e.preventDefault();
-	    	record.stopRecording();
-		});
-	}
-
-	this.disableRecordingButtons = function () {
-		Y.one('#recordButton').removeClass('recording');
-	}
-};
-
-window.PlaybackControls = PlaybackControls;
-
-var Record = function() {
-
-	// playbackFunction = this;
-
-	this.startRecording = function () {
-	    if (recorder) {
-	    	playbackControls.disablePlayerControls();
-	    	playbackControls.enableRecordingButtons();
-	    	recorder.record();
-	    	__log('Recording...');
-	    }
-	}
-
-	this.stopRecording = function () {
-	    if (recorder) {
-	    	recorder.stop();
-		    __log('Stopped recording.');
-	    	playbackControls.disableRecordingButtons();
-	    	recorder.exportWAV(function(blob) {});
-		    recorder.clear();
-		    this.listenForPlayer();
-	    }
-	}
-
-	this.listenForPlayer = function () {
-		if ( ! document.getElementById('audioRecording') ) {
-			setTimeout(this.listenForPlayer, 100);
-			__log('not found player in DOM');
-		} else {
-			__log('found player in DOM');
-			playbackControls.enablePlayerControls();
-		}
-	}
-};
-window.Record = Record;
-*/
-var Playback = function() {
-
-	this.startPlayBack = function (audioRecording) {
-	    audioRecording.play();
-	    __log('Play Recording...');
-	}
-
-	this.pausePlayBack = function (audioRecording) {
-	    audioRecording.pause();
-	}
-
-	this.stopPlayBack = function (audioRecording) {
-	    audioRecording.pause();
-	    audioRecording.currentTime = 0;
-	}
-};
-window.Playback = Playback;
-
-/*
-window.addEventListener ("message", function(e){
-  switch(e.data.command){
-    case 'audioRecordingLoaded':
-        enablePlayerControls();
-        break;
-  }
-}, false);
-*/

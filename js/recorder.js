@@ -87,7 +87,7 @@
 			}
 			document.getElementsByTagName('body')[0].appendChild(au);
 			*/
-			audioTag.src = 'data:audio/wav;base64,' + encode64(buffer);
+			audioTag.set( 'src', 'data:audio/wav;base64,' + encode64(buffer) );
 			__log('audioRecording appended', ' more data');
 			// this.postMessage({ command: 'audioRecording' });
 			// recordingslist.innerHTML = '';

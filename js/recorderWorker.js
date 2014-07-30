@@ -34,7 +34,7 @@ function record(inputBuffer){
   recLength += inputBuffer[0].length;
 }
 
-function exportWAV(type){
+function exportWAV(type, uniqueAudioID){
   var bufferL = mergeBuffers(recBuffersL, recLength);
   //var bufferR = mergeBuffers(recBuffersR, recLength);
   //var interleaved = interleave(bufferL, bufferR);
@@ -42,7 +42,7 @@ function exportWAV(type){
   var dataview = encodeWAV(bufferL);
   var audioBlob = new Blob([dataview], { type: type });
 
-  this.postMessage(audioBlob);
+  self.postMessage(audioBlob, uniqueAudioID);
 }
 
 function getBuffer() {
