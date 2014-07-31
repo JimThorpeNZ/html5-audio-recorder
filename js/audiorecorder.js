@@ -6,42 +6,58 @@ YUI.add("audio-recorder", function (Y) {
 	    initializer: function () {
 			// publish any events
 			// do any instantiation that doesn't require DOM
-			this._isRecording = false;
-			this._worker = new Worker( this.get("WORKER_PATH") );
+			// this._isRecording = false;
+			
 			// this._fileReader = new FileReader();
 			this._uniqueAudioID = Y.guid();
-/*
-
-			this._fileReader.onload = function(e){
-				// console.log(_audioTag);
-				// console.log(this); // FileReader
-				// console.log(e);
-				// console.log(self);
-				var buffer = new Uint8Array(this.result);
-				console.log(this);
-				console.log(Y.AudioRecorder.prototype._dataBackFromWorker);
-				Y.AudioRecorder.prototype._dataBackFromWorker(buffer, _audioTag, Y.AudioRecorder.prototype);
-		    };
 
 
-	        this._worker.addEventListener("message", function (event) {
-	            startFileReader(event.data);
-	        }, false);
 
-	        var startFileReader = function(blob) {
-	        	self._fileReader.readAsArrayBuffer(blob);
-	        }*/
 
-// this._self = this;
-/*			this._worker.onmessage = function(e){
-				var blob = e.data;
-					// self = self,
-					// fileReader = new FileReader();
-					// fileReader.audioRecorder = this;
-					console.log(this);
-			  
-			    this._fileReader.readAsArrayBuffer(blob);
-		    };*/
+			var bufferLen = this.get("bufferLen") || 4096;
+			this._source = this.get("input");
+			this._context = this._source.context;
+			this._node = (this._context.createScriptProcessor || this._context.createJavaScriptNode).call(this._context, bufferLen, 2, 2);
+			this._node.connect(this._context.destination);
+			this._node._isRecording = false;
+			this._node._worker = new Worker( this.get("WORKER_PATH") );
+			this._node._worker.postMessage({
+				command: 'init',
+				config: {
+					sampleRate: this._context.sampleRate
+				}
+			});
+			this._source.connect(this._node);
+
+			this._node.onaudioprocess = function(e, _isRecording, _worker){
+				if (!this._isRecording) return;
+				this._worker.postMessage({
+					command: 'record',
+					buffer: [
+						e.inputBuffer.getChannelData(0),
+						//e.inputBuffer.getChannelData(1)
+					]
+				});
+console.log(this._isRecording);
+			};
+
+		    this._node._worker.onmessage = function(e){
+				var blob = e.data.audioBlob,
+					uniqueAudioID = e.data.uniqueAudioID,
+					fileReader = new FileReader(uniqueAudioID);
+console.log("blob");
+console.log(blob);
+				fileReader.onload = function(){
+					var buffer = new Uint8Array(this.result);
+					Y.one('#' + uniqueAudioID).set( 'src', 'data:audio/wav;base64,' + Y.AudioRecorder.prototype.encode64(buffer) );
+					Y.one('#' + uniqueAudioID).insert( Y.Node.create('<audio/>').setAttrs({'controls': true, 'src': 'data:audio/wav;base64,' + Y.AudioRecorder.prototype.encode64(buffer) }), 'after');
+			    };
+			    fileReader.readAsArrayBuffer(blob);
+		    }
+					
+
+
+
 
 	    },
 	    renderUI: function () {
@@ -54,7 +70,7 @@ YUI.add("audio-recorder", function (Y) {
 			this._stopButton = Y.Node.create(buttonMarkUp[0] + 'fa-stop' + buttonMarkUp[1]);
 			this._uploadButton = Y.Node.create(buttonMarkUp[0] + 'fa-upload' + buttonMarkUp[1]);
 			this._allButtons = [this._recordButton, this._playButton, this._pauseButton, this._stopButton, this._uploadButton];
-			this._audioTag = Y.Node.create('<audio/>').setAttrs({'controls': true, 'id': this._uniqueAudioID});
+			this._audioTag = Y.Node.create('<audio/>').setAttrs({'controls': true, 'id': this._uniqueAudioID, 'src': ''});
 
 			// add nodes to the page all at once
 			this.get("container").addClass('btn-group').append(Y.all(this._allButtons)).insert(this._audioTag, 'after');
@@ -106,42 +122,30 @@ YUI.add("audio-recorder", function (Y) {
 			    alert('needs to convert and upload mp3');
 			});
 		},
-/*		_disablePlayerControls : function () {
-			Y.all(this._allButtons).addClass('disabled');
-			Y.all(this._allButtons).detach('click');
-		},*/
 		_disableRecordingButtons : function () {
 			Y.one(this._recordButton).removeClass('recording');
 		},
 		_startRecording : function () {
-			this._recorder();
+			// this._recorder();
 	    	this._setUIStateRecording();
-	    	this._recorder("record");
+	    	// this._recorder("record");
+	    	this._node._isRecording = true;
 	    	__log('Recording...');
 		},
 		_stopRecording : function () {
-			// var self = this;
-		 //    if (recorder) {
-		    	this._recorder("stop");
-			    __log('Stopped recording.');
-		    	// this._setUIStatePlayback();
-		    	this._recorder("exportWAV");
-			    this._recorder("clear");
-			    // this._listenForPlayer();
-		    // }
+	    	// this._recorder("stop");
+	    	this._node._isRecording = false;
+		    __log('Stopped recording.');
+	    	// this._setUIStatePlayback();
+	    	// this._recorder("exportWAV");
+	    	this._node._worker.postMessage({
+				command: 'exportWAV',
+				uniqueAudioID: this._uniqueAudioID,
+				type: 'audio/wav'
+			});
+		    // this._recorder("clear");
+		    this._node._worker.postMessage({ command: 'clear' });
 		},
-/*		_listenForPlayer : function (_audioTag) {
-			var audioTag = _audioTag || this._audioTag;
-			console.log("audioTag");
-			console.log(this._audioTag);
-			if ( ! this._audioTag.get('src') ) {
-				setTimeout(this._listenForPlayer, 100, this._audioTag);
-				__log('not found player src');
-			} else {
-				__log('found player src');
-				this._setUIStatePlayback();
-			}
-		},*/
 		_startPlayBack : function () {
 		    this._audioTag.play();
 		},
@@ -159,82 +163,29 @@ YUI.add("audio-recorder", function (Y) {
 			// var encoderWorker = new Worker( this.get("encoderWorker_path") );
 			switch ( recorderFunction ) {
 				case "record":
-					this._isRecording = true;
+					// this._node._isRecording = true;
+					// this._source.connect(this._node);
 					break;
 				case "stop":
-					this._isRecording = false;
+					// this._node._isRecording = false;
 					break;
 				case "clear":
-					this._worker.postMessage({ command: 'clear' });
+					// this._node._worker.postMessage({ command: 'clear' });
 					break;
 				case "getBuffer":
-					this._worker.postMessage({ command: 'getBuffer' });
+					this._node._worker.postMessage({ command: 'getBuffer' });
 					break;
 				case "exportWAV":
-					this._worker.postMessage({
-						command: 'exportWAV',
-						uniqueAudioID: this._uniqueAudioID,
-						type: 'audio/wav'
-					});
+					// this._node._worker.postMessage({
+					// 	command: 'exportWAV',
+					// 	uniqueAudioID: this._uniqueAudioID,
+					// 	type: 'audio/wav'
+					// });
 					break;
 				case "init":
 				default:
-					var bufferLen = this.get("bufferLen") || 4096,
-						_audioTag = this._audioTag,
-						source = this.get("input"),
-						context = source.context,
-						node = (context.createScriptProcessor || context.createJavaScriptNode).call(context, bufferLen, 2, 2);
-					this._worker.postMessage({
-						command: 'init',
-						config: {
-							sampleRate: context.sampleRate
-						}
-					});
-					node.onaudioprocess = function(e){
-						if (!this._isRecording) return;
-						this._worker.postMessage({
-							command: 'record',
-							buffer: [
-								e.inputBuffer.getChannelData(0),
-								//e.inputBuffer.getChannelData(1)
-							]
-						});
-					};
-
-
-
-    this._worker.onmessage = function(e, uniqueAudioID){
-		var blob = e.data,
-			uniqueAudioID = uniqueAudioID;
-		console.log(blob);
-		console.log(uniqueAudioID);
-
-		var fileReader = new FileReader(uniqueAudioID);
-
-		fileReader.onload = function(uniqueAudioID){
-			var buffer = new Uint8Array(this.result);
-
-			document.getElementById(uniqueAudioID).set( 'src', 'data:audio/wav;base64,' + encode64(buffer) );
-			__log('audioRecording appended', ' more data');
-			
-	    };
-	  
-	    fileReader.readAsArrayBuffer(blob, uniqueAudioID);
-
-    }
-
-
-
-
-
 				    break;
 			}
-		},
-		_dataBackFromWorker : function(buffer, _audioTag, thisInstance) {
-			console.log(_audioTag);
-			_audioTag.set( 'src', 'data:audio/wav;base64,' + thisInstance.encode64(buffer) );
-			__log('audioRecording appended', ' more data');
-			thisInstance._setUIStatePlayback();
 		},
 		encode64 : function(buffer) {
 			var binary = '',
