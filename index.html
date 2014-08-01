@@ -8,7 +8,8 @@
 </head>
 <body>
 
-<div class="videoRecorderControls"></div>
+<div class="videoRecorderControls" id="recorderA"></div>
+<div class="videoRecorderControls" id="recorderB"></div>
 
 <h2>Log</h2>
 <pre id="log"></pre>
@@ -16,28 +17,16 @@
 <script>
 var audio_context, recorder, playback;
 
-function __log(e, data) {
-    document.getElementById('log').innerHTML += "\n" + e + " " + (data || '');
-    console.log(e);
-}
-
 function startUserMedia(stream) {
     var input = audio_context.createMediaStreamSource(stream);
     input.connect(audio_context.destination);
 
     YUI().use("audio-recorder", function (Y) {
-	    var AudioRecorder = new Y.AudioRecorder({input:input});
-	    AudioRecorder.render();
+	    var AudioRecorderA = new Y.AudioRecorder({input:input, container:"#recorderA", callback:upload});
+	    AudioRecorderA.render();
+	    var AudioRecorderB = new Y.AudioRecorder({input:input, container:"#recorderB", callback:upload});
+	    AudioRecorderB.render();
 	});
-
-    // playbackControls = new PlaybackControls(input);
-    // __log('PlaybackControls initialised.');
-/*
-	if ( document.getElementsByClassName('videoRecorderControls').every(function(){}, str)) {
-	    console.log("The string '" + str + "' contains only letters!");
-	}*/
-
-	// document.getElementsByClassName('videoRecorderControls').forEach();
 }
 
 window.onload = function () {
@@ -56,9 +45,12 @@ window.onload = function () {
         __log('No live audio input: ' + e);
     });
 };
+
+function upload() {
+	alert("about to upload");
+}
 </script>
 <script src="http://yui.yahooapis.com/3.17.2/build/yui/yui-min.js"></script>
 <script src="js/audiorecorder.js"></script>
-<!-- <script src="js/recorder.js"></script> -->
 </body>
 </html>

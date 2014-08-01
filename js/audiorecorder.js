@@ -62,6 +62,7 @@ YUI.add("audio-recorder", function (Y) {
 
 	    },
 	    bindUI: function () {
+	    	this._disableButtons();
 		    this._setUIStateInit();
 	    },
 	    syncUI: function () {
@@ -78,7 +79,6 @@ YUI.add("audio-recorder", function (Y) {
 	        }
 	    },*/
 	    _setUIStateInit : function () {
-	    	this._disableButtons();
 		    this._recordButton.removeClass('disabled').on("click", Y.bind(this._startRecording, this));
 	    },
 	    _setUIStateRecording : function () {
@@ -87,9 +87,10 @@ YUI.add("audio-recorder", function (Y) {
 			Y.all([this._stopButton, this._recordButton]).removeClass('disabled').on("click", Y.bind(this._stopRecording, this));
 	    },
 	    _setUIStatePlayback : function () {
+			this._disableButtons();
 			this._enableButtons();
-			var _audioTagId = Y.one(this._audioTag).getAttribute('id'),
-				_audioTag = document.getElementById(_audioTagId);
+			this._recordButton.removeClass('recording').on("click", Y.bind(this._startRecording, this));
+			var _audioTag = Y.one(this._audioTag).getDOMNode();
 			this._playButton.on('click', function(e) {
 				    e.preventDefault();
 				    this._startPlayBack(_audioTag);
@@ -116,11 +117,9 @@ YUI.add("audio-recorder", function (Y) {
 		_startRecording : function () {
 	    	this._node._isRecording = true;
 	    	this._setUIStateRecording();
-	    	__log('Recording...');
 		},
 		_stopRecording : function () {
 	    	this._node._isRecording = false;
-		    __log('Stopped recording.');
 	    	this._node._worker.postMessage({
 				command: 'exportWAV',
 				uniqueAudioID: this._uniqueAudioID,
@@ -172,11 +171,9 @@ YUI.add("audio-recorder", function (Y) {
 	});
 }, "3.3.0", {
 	requires: [
-		"base-build", // provides Y.Base.create
-		"widget"      // provides Y.Widget
-	],
-	group: "nfl",     // declares the nfl group (important for skins)
-	skinnable: false   // declares that your module is skinned
+		"base-build",
+		"widget"
+	]
 });
 
 
