@@ -21,7 +21,7 @@ function startUserMedia(stream) {
     var input = audio_context.createMediaStreamSource(stream);
     input.connect(audio_context.destination);
 
-    YUI().use("audio-recorder", function (Y) {
+    YUI().use("audioRecorder", function (Y) {
 	    var AudioRecorderA = new Y.AudioRecorder({input:input, container:"#recorderA", callback:upload});
 	    AudioRecorderA.render();
 	    var AudioRecorderB = new Y.AudioRecorder({input:input, container:"#recorderB", callback:upload});
