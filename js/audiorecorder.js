@@ -6,7 +6,7 @@ YUI.add("audioRecorder", function (Y) {
         initializer: function () {
             this._uniqueAudioID = Y.guid();
             this._bufferLen = this.get("bufferLen") || 4096;
-            this._source = this.get("input");
+            this._source = this.get("audioInput");
             this._context = this._source.context;
             this._node = (this._context.createScriptProcessor || this._context.createJavaScriptNode).call(this._context, this._bufferLen, 2, 2);
             this._node.connect(this._context.destination);
@@ -29,15 +29,16 @@ YUI.add("audioRecorder", function (Y) {
                 });
             };
             this._node._recorderWorker.onmessage = function (event) {
-                var blob = event.data.audioBlob,
+                var audioBlob = event.data.audioBlob,
                     uniqueAudioID = event.data.uniqueAudioID,
                     fileReader = new FileReader(uniqueAudioID);
                 fileReader.onload = function () {
                     var buffer = new Uint8Array(this.result);
                     Y.one('#' + uniqueAudioID).set('src', 'data:audio/wav;base64,' + Y.AudioRecorder.prototype.encode64(buffer));
                 };
-                fileReader.readAsArrayBuffer(blob);
-                Y.AudioRecorder.prototype.setVariable('blob', blob);
+                fileReader.readAsArrayBuffer(audioBlob);
+                Y.AudioRecorder.prototype.setVariable('audioBlob', audioBlob);
+                // Y.AudioRecorder.setAttrs('audioBlob', audioBlob);
             };
             this._source.connect(this._node);
         },
@@ -50,15 +51,13 @@ YUI.add("audioRecorder", function (Y) {
             } else {
                 return "error";
             }
-
         },
         renderUI: function () {
-            var buttonMarkUp = ['<a class="btn btn-default" href="#"><i class="fa ', '"></i></a>'];
-            this._recordButton = Y.Node.create(buttonMarkUp[0] + 'fa-circle' + buttonMarkUp[1]);
-            this._playButton = Y.Node.create(buttonMarkUp[0] + 'fa-play' + buttonMarkUp[1]);
-            this._pauseButton = Y.Node.create(buttonMarkUp[0] + 'fa-pause' + buttonMarkUp[1]);
-            this._stopButton = Y.Node.create(buttonMarkUp[0] + 'fa-stop' + buttonMarkUp[1]);
-            this._uploadButton = Y.Node.create(buttonMarkUp[0] + 'fa-upload' + buttonMarkUp[1]);
+            this._recordButton = Y.Node.create(this.get("buttons.recordButton.value"));
+            this._playButton = Y.Node.create(this.get("buttons.playButton.value"));
+            this._pauseButton = Y.Node.create(this.get("buttons.pauseButton.value"));
+            this._stopButton = Y.Node.create(this.get("buttons.stopButton.value"));
+            this._uploadButton = Y.Node.create(this.get("buttons.uploadButton.value"));
             this._allButtons = [this._recordButton, this._playButton, this._pauseButton, this._stopButton, this._uploadButton];
             this._audioTag = Y.Node.create('<audio/>')
                 .setAttrs({'controls': true, 'id': this._uniqueAudioID, 'src': ''});
@@ -76,19 +75,30 @@ YUI.add("audioRecorder", function (Y) {
         destructor: function () {
         },
         _setUIStateInit : function () {
-            this._recordButton.removeClass('disabled')
+            this._recordButton.removeClass(this.get("classes.disabled.value"))
                 .on("click", Y.bind(this._startRecording, this));
         },
         _setUIStateRecording : function () {
             this._disableButtons();
-            this._recordButton.addClass('recording');
-            Y.all([this._stopButton, this._recordButton]).removeClass('disabled')
+            this._recordButton.addClass(this.get("classes.recording.value"));
+            Y.all([this._stopButton, this._recordButton]).removeClass(this.get("classes.disabled.value"))
                 .on("click", Y.bind(this._stopRecording, this));
+        },
+        _setUIStateUpLoading : function () {
+            this._disableButtons();
+            this._uploadButton.one('i')
+            	.removeClass(this.get("classes.upload.value"))
+            	.addClass(this.get("classes.uploading.value"));
+        },
+        _setUIStateUpLoaded : function () {
+            this._uploadButton.one('i')
+            	.removeClass(this.get("classes.uploading.value"))
+            	.addClass(this.get("classes.uploaded.value"));
         },
         _setUIStatePlayback : function () {
             this._disableButtons();
             this._enableButtons();
-            this._recordButton.removeClass('recording')
+            this._recordButton.removeClass(this.get("classes.recording.value"))
                 .on("click", Y.bind(this._startRecording, this));
             var _audioTag = Y.one(this._audioTag).getDOMNode();
             this._playButton.on('click', function (event) {
@@ -106,15 +116,16 @@ YUI.add("audioRecorder", function (Y) {
                     }, this, _audioTag);
             this._uploadButton.on('click', function (event) {
                     event.preventDefault();
+                    this._setUIStateUpLoading();
                     this._wav2mp3(_audioTag);
                 }, this, _audioTag);
         },
         _disableButtons : function () {
-            Y.all(this._allButtons).addClass('disabled')
+            Y.all(this._allButtons).addClass(this.get("classes.disabled.value"))
                 .detach('click');
         },
         _enableButtons : function () {
-            Y.all(this._allButtons).removeClass('disabled');
+            Y.all(this._allButtons).removeClass(this.get("classes.disabled.value"));
         },
         _startRecording : function () {
             this._node._isRecording = true;
@@ -186,8 +197,7 @@ YUI.add("audioRecorder", function (Y) {
                     }
                 };
             };
-
-            fileReader.readAsArrayBuffer(Y.AudioRecorder.prototype.getVariable('blob'));
+            fileReader.readAsArrayBuffer(Y.AudioRecorder.prototype.getVariable('audioBlob'));
         },
         parseWav : function (wav) {
             function readInt(i, bytes) {
@@ -233,6 +243,12 @@ YUI.add("audioRecorder", function (Y) {
                 console.log("mp3name = " + mp3Name);
                 formData.append('fname', mp3Name);
                 formData.append('data', event.target.result);
+console.log(Y);
+console.log(Y.AudioRecorder);
+console.log(Y.AudioRecorder.prototype);
+console.log(Y.AudioRecorder.prototype._setUIStateUpLoaded);
+                Y.AudioRecorder.prototype._setUIStateUpLoaded();
+                console.log("move previous line to on success of upload.php")
                 Y.io('upload.php', {
                     data: formData,
                     on: {
@@ -252,14 +268,55 @@ YUI.add("audioRecorder", function (Y) {
                     return Y.one(val) || Y.all(".videoRecorderControls");
                 }
             },
-            input: {
+            audioInput: {
                 value: null
+            },
+            audioBlob: {
+                value: 'string here'
             },
             recorderWorkerPath: {
                 value: 'js/recorderWorker.js'
             },
             mp3WorkerPath: {
                 value: 'js/mp3Worker.js'
+            },
+            buttons: {
+            	value: {
+	            	recordButton: {
+	            		value: '<a class="btn btn-default" href="#"><i class="fa fa-circle"></i></a>'
+	            	},
+	            	playButton: {
+	            		value: '<a class="btn btn-default" href="#"><i class="fa fa-play"></i></a>'
+	            	},
+	            	pauseButton: {
+	            		value: '<a class="btn btn-default" href="#"><i class="fa fa-pause"></i></a>'
+	            	},
+	            	stopButton: {
+	            		value: '<a class="btn btn-default" href="#"><i class="fa fa-stop"></i></a>'
+	            	},
+	            	uploadButton: {
+	            		value: '<a class="btn btn-default" href="#"><i class="fa fa-upload"></i></a>'
+	            	}
+            	}
+            },
+            classes: {
+            	value: {
+	            	disabled: {
+	            		value: 'disabled'
+	            	},
+	            	recording: {
+	            		value: 'recording'
+	            	},
+	            	upload: {
+	            		value: 'fa-upload'
+	            	},
+	            	uploading: {
+	            		value: 'fa-spinner fa-spin'
+	            	},
+	            	uploaded: {
+	            		value: 'fa-check complete'
+	            	}
+            	}
             }
         }
     });
@@ -269,3 +326,12 @@ YUI.add("audioRecorder", function (Y) {
         "widget"
     ]
 });
+/*
+setVariable to setAttrs
+blob
+getVariable
+
+
+
+remove console.log
+*/

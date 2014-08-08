@@ -11,9 +11,6 @@
 <div class="videoRecorderControls" id="recorderA"></div>
 <div class="videoRecorderControls" id="recorderB"></div>
 
-<h2>Log</h2>
-<pre id="log"></pre>
-
 <script>
 var audio_context, recorder, playback;
 
@@ -22,9 +19,9 @@ function startUserMedia(stream) {
     input.connect(audio_context.destination);
 
     YUI().use("audioRecorder", function (Y) {
-	    var AudioRecorderA = new Y.AudioRecorder({input:input, container:"#recorderA", callback:upload});
+	    var AudioRecorderA = new Y.AudioRecorder({audioInput:input, container:"#recorderA", callback:upload});
 	    AudioRecorderA.render();
-	    var AudioRecorderB = new Y.AudioRecorder({input:input, container:"#recorderB", callback:upload});
+	    var AudioRecorderB = new Y.AudioRecorder({audioInput:input, container:"#recorderB", callback:upload});
 	    AudioRecorderB.render();
 	});
 }

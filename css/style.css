@@ -61,3 +61,6 @@
  	cursor: default;
 	color: #999;
 }
+.complete {
+	color: #0e0;
+}
