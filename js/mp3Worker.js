@@ -18,14 +18,14 @@ self.onmessage = function(e) {
 		Lame.set_bitrate(mp3codec, e.data.config.bitrate || 128);
 
 		Lame.init_params(mp3codec);
-		console.log('Version :', Lame.get_version() + ' / ',
-			'Mode: '+Lame.get_mode(mp3codec) + ' / ',
-			'Samples: '+Lame.get_num_samples(mp3codec) + ' / ',
-			'Channels: '+Lame.get_num_channels(mp3codec) + ' / ',
-			'Input Samplate: '+ Lame.get_in_samplerate(mp3codec) + ' / ',
-			'Output Samplate: '+ Lame.get_in_samplerate(mp3codec) + ' / ',
-			'Bitlate :' +Lame.get_bitrate(mp3codec) + ' / ',
-			'VBR :' + Lame.get_VBR(mp3codec));
+		console.log('Version : ', Lame.get_version());//, ' / ',
+		console.log('Mode: ', Lame.get_mode(mp3codec), ' / ',
+			'Samples: ', Lame.get_num_samples(mp3codec), ' / ',
+			'Channels: ', Lame.get_num_channels(mp3codec), ' / ',
+			'Input Samplate: ', Lame.get_in_samplerate(mp3codec), ' / ',
+			'Output Samplate: ', Lame.get_in_samplerate(mp3codec), ' / ',
+			'Bitlate: ', Lame.get_bitrate(mp3codec), ' / ',
+			'VBR: ', Lame.get_VBR(mp3codec));
 		break;
 	case 'encode':
 		var mp3data = Lame.encode_buffer_ieee_float(mp3codec, e.data.buf, e.data.buf);

@@ -4,6 +4,7 @@ YUI.add("audioRecorder", function (Y) {
 
     Y.AudioRecorder = Y.Base.create("audioRecorder", Y.Widget, [], {
         initializer: function () {
+        	var self = this;
             this._uniqueAudioID = Y.guid();
             this._bufferLen = this.get("bufferLen") || 4096;
             this._source = this.get("audioInput");
@@ -34,23 +35,12 @@ YUI.add("audioRecorder", function (Y) {
                     fileReader = new FileReader(uniqueAudioID);
                 fileReader.onload = function () {
                     var buffer = new Uint8Array(this.result);
-                    Y.one('#' + uniqueAudioID).set('src', 'data:audio/wav;base64,' + Y.AudioRecorder.prototype.encode64(buffer));
+                    Y.one('#' + uniqueAudioID).set('src', 'data:audio/wav;base64,' + self.encode64(buffer));
                 };
                 fileReader.readAsArrayBuffer(audioBlob);
-                Y.AudioRecorder.prototype.setVariable('audioBlob', audioBlob);
-                // Y.AudioRecorder.setAttrs('audioBlob', audioBlob);
+                self.set('audioBlob', audioBlob);
             };
             this._source.connect(this._node);
-        },
-        setVariable: function (thisVariable, value) {
-            this[thisVariable] = value;
-        },
-        getVariable: function (thisVariable) {
-            if (typeof(this[thisVariable]) != 'undefined') {
-                return this[thisVariable];
-            } else {
-                return "error";
-            }
         },
         renderUI: function () {
             this._recordButton = Y.Node.create(this.get("buttons.recordButton.value"));
@@ -74,28 +64,29 @@ YUI.add("audioRecorder", function (Y) {
         },
         destructor: function () {
         },
-        _setUIStateInit : function () {
+        _setUIStateInit: function () {
             this._recordButton.removeClass(this.get("classes.disabled.value"))
                 .on("click", Y.bind(this._startRecording, this));
         },
-        _setUIStateRecording : function () {
+        _setUIStateRecording: function () {
             this._disableButtons();
             this._recordButton.addClass(this.get("classes.recording.value"));
             Y.all([this._stopButton, this._recordButton]).removeClass(this.get("classes.disabled.value"))
                 .on("click", Y.bind(this._stopRecording, this));
         },
-        _setUIStateUpLoading : function () {
+        _setUIStateUpLoading: function () {
             this._disableButtons();
             this._uploadButton.one('i')
             	.removeClass(this.get("classes.upload.value"))
             	.addClass(this.get("classes.uploading.value"));
         },
-        _setUIStateUpLoaded : function () {
-            this._uploadButton.one('i')
+        _setUIStateUpLoaded: function (thisSelf) {
+        	self = thisSelf ? thisSelf : this;
+            self._uploadButton.one('i')
             	.removeClass(this.get("classes.uploading.value"))
             	.addClass(this.get("classes.uploaded.value"));
         },
-        _setUIStatePlayback : function () {
+        _setUIStatePlayback: function () {
             this._disableButtons();
             this._enableButtons();
             this._recordButton.removeClass(this.get("classes.recording.value"))
@@ -120,18 +111,18 @@ YUI.add("audioRecorder", function (Y) {
                     this._wav2mp3(_audioTag);
                 }, this, _audioTag);
         },
-        _disableButtons : function () {
+        _disableButtons: function () {
             Y.all(this._allButtons).addClass(this.get("classes.disabled.value"))
                 .detach('click');
         },
-        _enableButtons : function () {
+        _enableButtons: function () {
             Y.all(this._allButtons).removeClass(this.get("classes.disabled.value"));
         },
-        _startRecording : function () {
+        _startRecording: function () {
             this._node._isRecording = true;
             this._setUIStateRecording();
         },
-        _stopRecording : function () {
+        _stopRecording: function () {
             this._node._isRecording = false;
             this._node._recorderWorker.postMessage({
                 command: 'exportWAV',
@@ -143,17 +134,17 @@ YUI.add("audioRecorder", function (Y) {
             });
             this._setUIStatePlayback();
         },
-        _startPlayBack : function (_audioTag) {
+        _startPlayBack: function (_audioTag) {
             _audioTag.play();
         },
-        _pausePlayBack : function (_audioTag) {
+        _pausePlayBack: function (_audioTag) {
             _audioTag.pause();
         },
-        _stopPlayBack : function (_audioTag) {
+        _stopPlayBack: function (_audioTag) {
             _audioTag.pause();
             _audioTag.currentTime = 0;
         },
-        encode64 : function(buffer) {
+        encode64: function(buffer) {
             var binary = '',
                 bytes = new Uint8Array(buffer),
                 len = bytes.byteLength;
@@ -163,14 +154,15 @@ YUI.add("audioRecorder", function (Y) {
             }
             return window.btoa(binary);
         },
-        _wav2mp3 : function () {
+        _wav2mp3: function () {
             var arrayBuffer,
-                fileReader = new FileReader();
+                fileReader = new FileReader(),
+                self = this;
 
             fileReader.onload = function () {
                 arrayBuffer = this.result;
                 var buffer = new Uint8Array(arrayBuffer),
-                    data = Y.AudioRecorder.prototype.parseWav(buffer);
+                    data = self.parseWav(buffer);
 
                 this._mp3Worker = new Worker(Y.AudioRecorder.ATTRS.mp3WorkerPath.value);
                 this._mp3Worker.postMessage({
@@ -184,22 +176,21 @@ YUI.add("audioRecorder", function (Y) {
                 });
                 this._mp3Worker.postMessage({
                     cmd: 'encode',
-                    buf: Y.AudioRecorder.prototype.Uint8ArrayToFloat32Array(data.samples)
+                    buf: self.Uint8ArrayToFloat32Array(data.samples)
                 });
                 this._mp3Worker.postMessage({
                     cmd: 'finish'
                 });
                 this._mp3Worker.onmessage = function (event) {
                     if (event.data.cmd == 'data') {
-                        console.log("Done converting to Mp3");
                         var mp3Blob = new Blob([new Uint8Array(event.data.buf)], {type: 'audio/mp3'});
-                        Y.AudioRecorder.prototype.uploadAudio(mp3Blob);
+                        self.uploadAudio(mp3Blob, self);
                     }
                 };
             };
-            fileReader.readAsArrayBuffer(Y.AudioRecorder.prototype.getVariable('audioBlob'));
+            fileReader.readAsArrayBuffer(self.get('audioBlob'));
         },
-        parseWav : function (wav) {
+        parseWav: function (wav) {
             function readInt(i, bytes) {
                 var ret = 0,
                     shft = 0;
@@ -224,7 +215,7 @@ YUI.add("audioRecorder", function (Y) {
                 samples: wav.subarray(44)
             };
         },
-        Uint8ArrayToFloat32Array : function (u8a) {
+        Uint8ArrayToFloat32Array: function (u8a) {
             var f32Buffer = new Float32Array(u8a.length);
             for (var i = 0; i < u8a.length; i++) {
                 var value = u8a[i<<1] + (u8a[(i<<1) + 1]<<8);
@@ -235,30 +226,47 @@ YUI.add("audioRecorder", function (Y) {
             }
             return f32Buffer;
         },
-        uploadAudio : function (mp3Data) {
-            var reader = new FileReader();
-            reader.onload = function (event) {
-                var formData = new FormData(),
-                    mp3Name = encodeURIComponent('audio_recording_' + new Date().getTime() + '.mp3');
-                console.log("mp3name = " + mp3Name);
-                formData.append('fname', mp3Name);
-                formData.append('data', event.target.result);
-console.log(Y);
-console.log(Y.AudioRecorder);
-console.log(Y.AudioRecorder.prototype);
-console.log(Y.AudioRecorder.prototype._setUIStateUpLoaded);
-                Y.AudioRecorder.prototype._setUIStateUpLoaded();
-                console.log("move previous line to on success of upload.php")
-                Y.io('upload.php', {
-                    data: formData,
-                    on: {
-                        success: function (data) {
-                            console.log(data);
-                        }
-                    }
-                });
-            };
-            reader.readAsDataURL(mp3Data);
+        uploadAudio: function (mp3Data, thisSelf) {
+            var reader = new FileReader(),
+        		self = thisSelf ? thisSelf : this,
+                formData = new FormData(),
+                mp3Name = encodeURIComponent('audio_recording_' + new Date().getTime() + '.mp3');
+
+            formData.append('fname', mp3Name);
+            formData.append('data', mp3Data);
+
+			var xhr = new XMLHttpRequest;
+			xhr.open('POST', self.get("uploadScript"), true);
+			xhr.send(formData);
+			xhr.onreadystatechange = function () {
+		        if (xhr.readyState == 4 && xhr.status == 200){
+					console.log('xhr.readyState=', xhr.readyState);
+					console.log('xhr.status=', xhr.status);
+					console.log('response=', xhr.responseText);
+	                self._setUIStateUpLoaded(self);
+		        }
+		    }
+			/*
+            Y.io(self.get("uploadScript"), {
+		        method: 'POST',
+		        data: formData,
+		        on: {
+		            success: function(ioId, o) {
+		                console.log("success");//, ioId, o);
+		                self._setUIStateUpLoaded(self);
+		            },
+		            failure: function(ioId, o) {
+		                console.log("failure", ioId, o);
+		                self._setUIStateUpLoaded(self);
+		            },
+		            complete : function(ioId, o) {
+		                console.log("complete", ioId, o);
+		                self._setUIStateUpLoaded(self);
+		            }
+		        },
+		        timeout: 60
+		    });
+		    */
         }
     }, {
         ATTRS: {
@@ -279,6 +287,9 @@ console.log(Y.AudioRecorder.prototype._setUIStateUpLoaded);
             },
             mp3WorkerPath: {
                 value: 'js/mp3Worker.js'
+            },
+            uploadScript: {
+                value: 'upload.php'
             },
             buttons: {
             	value: {
@@ -314,7 +325,7 @@ console.log(Y.AudioRecorder.prototype._setUIStateUpLoaded);
 	            		value: 'fa-spinner fa-spin'
 	            	},
 	            	uploaded: {
-	            		value: 'fa-check complete'
+	            		value: 'fa-check uploaded'
 	            	}
             	}
             }
@@ -323,15 +334,7 @@ console.log(Y.AudioRecorder.prototype._setUIStateUpLoaded);
 }, "3.3.0", {
     requires: [
         "base-build",
-        "widget"
+        "widget",
+        "io"
     ]
 });
-/*
-setVariable to setAttrs
-blob
-getVariable
-
-
-
-remove console.log
-*/
